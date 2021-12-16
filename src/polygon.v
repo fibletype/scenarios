@@ -37,8 +37,6 @@ Inductive cond :=
 
 Definition state := list cond.
 
-(* Variable (state : Set). *)
-
 Definition A := [phi ; psi].
 Definition B := [psi ; phi].
 Definition C := [ksi ; phi].
@@ -50,6 +48,7 @@ Inductive rel : state -> state -> Prop :=
 | AB : rel A B
 | BC : rel B C
 | AD : rel A D.
+
 (* G phi /\ F psi /\ phi U psi *)
 
 Inductive rel_prop : list state -> Prop :=
@@ -57,19 +56,21 @@ Inductive rel_prop : list state -> Prop :=
 | base_rel : forall a, rel_prop [a]
 | trans_rel : forall a b l , rel a b -> rel_prop (b :: l) -> rel_prop (a :: b :: l).
 
+Definition state_formula := state -> Prop.
 
-Inductive state_formula : state -> Prop :=
-| impl : forall c1 c2 s, In c1 s -> In c2 s -> state_formula s.
+(* 
+Inductive state_formula_impl : cond -> state -> Prop :=
+| impl : forall c1 c2 s, In c1 s -> In c2 s -> state_formula_impl c1 s.
+ *)
+Inductive G_formula : list cond -> list state -> Prop :=
+| G_empty_form : forall (b : list cond), G_formula b []
+| G_hold : forall (a : state) (b : list cond) (c : list state), Forall (fun x => In x a) b -> G_formula b c -> G_formula b (a::c).
 
-Inductive G_formula : state -> list state -> Prop :=
-| G_empty : forall (b : list cond), G_formula b []
-| G_holds : forall (a : state) (b : list cond) (c : list state), Forall (fun x => In x a) b -> G_formula b c -> G_formula b (a::c).
-
-(* Inductive F_formula : cond -> list state -> Prop :=
+Inductive F_formula : cond -> list state -> Prop :=
 | F_empty_form : forall (b : cond), F_formula b []
-| F_not_hold : forall (b: cond), 
-| F : forall (a : state) (b : cond) (c : list state), In b a -> F_formula b c -> F_formula b (a::c).
-*)
+| F_not_hold : forall (a : state) (b: cond) (s : list state), not (In b a) -> F_formula b s -> F_formula b (a::s)
+| F_hold_first_time : forall (a : state) (b : cond) (s : list state), In b a -> F_formula b s -> F_formula b (a::s).
+
 
 Definition scen1 := [ A ; B ; C ].
 Definition scen2 := [ A ; D ].
@@ -112,8 +113,15 @@ Proof.
 Admitted.
     
     
-
-
-
-(* rel C D
-Abort. *)
+Lemma scen1_F_ksi : F_formula ksi scen1.
+Proof.
+    constructor.
+    simpl. unfold not. intros.
+    inversion H. discriminate.
+    inversion H0. discriminate. assumption.
+    constructor. simpl. unfold not. intros.
+    inversion H. discriminate.
+    inversion H0. discriminate. assumption.
+    constructor 3. simpl. left. auto.
+    constructor.
+Qed.
