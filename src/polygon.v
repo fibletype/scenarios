@@ -38,14 +38,14 @@ Inductive cond :=
 
 (* Состояние это набор условий *)
 
-Definition state := list cond.
+Definition state := list bool.
 
 (* Несколько состояний *)
 
-Definition A := [phi ; psi].
-Definition B := [psi ; phi].
-Definition C := [ksi ; phi].
-Definition D := [psi ; ksi].
+Definition A := [true ; false].
+Definition B := [false ; true].
+Definition C := [true ; true].
+Definition D := [false ; false].
 
 (* Переходы между состояниями, которые происходят при обработке сообщений *)
 
@@ -72,7 +72,7 @@ Inductive state_formula_impl : cond -> state -> Prop :=
  *)
 
 
-(* Предикаты, которые позволяют нам судить о выполнении каких-то свойств в сценарии *)
+(* (* Предикаты, которые позволяют нам судить о выполнении каких-то свойств в сценарии *)
 
 Inductive G_formula : list cond -> list state -> Prop :=
 | G_empty_form : forall (b : list cond), G_formula b []
@@ -154,3 +154,129 @@ Proof.
     simpl. constructor. left. auto.
     constructor. constructor.
 Qed.
+ *)
+
+Module state_formulas.
+Import ListNotations.
+Inductive cond :=
+| phi
+| psi
+| ksi.
+
+Definition state := list cond.
+
+Definition A := [phi ; psi].
+Definition B := [psi ; phi].
+Definition C := [phi ; phi].
+Definition D := [psi ; ksi].
+
+Inductive state_formula := 
+| el (c : cond)
+| and  (b1 b2 : state_formula)
+| or   (b1 b2 : state_formula)
+| impl (b1 b2 : state_formula).
+(* Переписать это как функцию из леджера в бул
+    Подумать о том, что сценарий это не последовательность состояний, а 
+    начальное состояние и последовательность переходов
+*)
+
+Inductive formula :=
+| sf   (s : state_formula)
+| G    (b : formula)
+| F    (b : formula).
+
+Definition eqc c1 c2 := 
+    match c1 with
+    | phi => match c2 with
+            | phi => true
+            | _ => false
+    end
+    | psi => match c2 with
+            | psi => true
+            | _ => false
+    end
+    | ksi => match c2 with
+            | ksi => true
+            | _ => false
+    end
+    end.
+
+Fixpoint inb'  (b : bool) (a : cond) (l : list cond) : bool := 
+    match l with
+    | [] => b
+    | h :: t => if (eqc a h) 
+                then inb' true a t
+                else inb' b a t
+    end.
+
+Definition inb := inb' false.
+
+Compute inb phi A.
+Definition SFInterpretator (sf : state_formula) (s : state) : bool.
+induction sf.
+refine (inb c s).
+refine (andb IHsf1 IHsf2).
+refine (orb IHsf1 IHsf2).
+refine (implb IHsf1 IHsf2).
+Defined.
+
+
+Compute SFInterpretator (el phi) A .
+
+(* Fixpoint interpretator (f : formula) (ls : list state) : bool.
+induction ls.
+refine true.
+destruct f.
+refine (SFInterpretator s a).
+refine (andb (interpretator f [a]) IHls).
+refine (orb (interpretator f [a]) IHls).
+Defined.
+ *)
+
+Fixpoint interpretator (f : formula) (ls : list state) : bool :=
+match ls with
+| [] => true
+| a :: [] => match f with
+        | sf s => SFInterpretator s a
+        | G s => interpretator s [a]
+        | F s => interpretator s [a]
+end
+| a :: t => match f with
+            | sf s => SFInterpretator s a
+            | G s => andb (interpretator s [a]) (interpretator s t)
+            | F s => orb (interpretator s [a]) (interpretator s t)
+end
+end.
+(* induction ls.
+refine false.
+destruct f.
+refine (SFInterpretator s a).
+refine (andb (interpretator f [a]) IHls).
+refine (orb (interpretator f [a]) IHls).
+Defined. *)
+
+
+Definition scen1 := [ A ; B ; C ].
+
+
+Lemma scen1_F_phi : interpretator (F (sf (el phi))) scen1 = true.
+Proof.
+    auto.
+Qed.
+
+Lemma scen1_G_phi : interpretator (G (sf (el phi))) scen1 = true.
+Proof.
+    compute. auto.
+Qed.
+
+Lemma scen1_F_ksi : interpretator (F (sf (el ksi))) scen1 = false.
+Proof.
+    compute. auto.
+Qed.
+
+Lemma scen1_G_ksi : interpretator (G (sf (el ksi))) scen1 = false.
+Proof.
+    compute. auto.
+Qed.
+
+End state_formulas.
