@@ -1,3 +1,9 @@
+Require Import FinProof.Common. 
+
+Require Import UMLang.UrsusLib.
+
+
+
 (*
 Давайте выкинем неспецифицированные случаи, потому что с ними очень тяжко осознать что нужно
 
@@ -26,9 +32,8 @@ F (G ((a -> b) or (a -> c)))
 *)
 
 Require Import List.
-Require Import Lia.
 Import ListNotations.
-
+Local Open Scope list_scope.
 (* Условия по которым мы разбиваем систему контрактов на состояния *)
 
 Inductive cond :=
@@ -58,11 +63,16 @@ Inductive rel : state -> state -> Prop :=
 (* G phi /\ F psi /\ phi U psi *)
 
 (* Предикат, который гарантирует, что сценарий корректен с точки зрения переходов между состояниями *)
+Locate "::".
+Locate "[ x ]".
+Locate  "_ [ _ ]".
 
 Inductive rel_prop : list state -> Prop :=
-| empty_rel : rel_prop []
-| base_rel : forall a, rel_prop [a]
+| empty_rel : rel_prop nil
+| base_rel : forall a, rel_prop (cons a nil)
 | trans_rel : forall a b l , rel a b -> rel_prop (b :: l) -> rel_prop (a :: b :: l).
+
+
 
 (* Definition state_formula := state -> Prop. *)
 
@@ -238,13 +248,13 @@ match ls with
 | [] => true
 | a :: [] => match f with
         | sf s => SFInterpretator s a
-        | G s => interpretator s [a]
-        | F s => interpretator s [a]
+        | G s => interpretator s (cons a nil)
+        | F s => interpretator s (cons a nil)
 end
 | a :: t => match f with
             | sf s => SFInterpretator s a
-            | G s => andb (interpretator s [a]) (interpretator s t)
-            | F s => orb (interpretator s [a]) (interpretator s t)
+            | G s => andb (interpretator s (cons a nil)) (interpretator s t)
+            | F s => orb (interpretator s (cons a nil)) (interpretator s t)
 end
 end.
 (* induction ls.
