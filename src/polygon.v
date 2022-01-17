@@ -1,9 +1,7 @@
-Require Import FinProof.Common. 
-
+(* 
 Require Import UMLang.UrsusLib.
-
-
-
+Local Open Scope ursus_scope.
+Print URValueP.
 (*
 Давайте выкинем неспецифицированные случаи, потому что с ними очень тяжко осознать что нужно
 
@@ -34,6 +32,15 @@ F (G ((a -> b) or (a -> c)))
 Require Import List.
 Import ListNotations.
 Local Open Scope list_scope.
+
+Import ListNotations.
+Inductive cond :=
+| phi
+| psi
+| ksi.
+
+Definition state := list (URValue XBool false).
+
 (* Условия по которым мы разбиваем систему контрактов на состояния *)
 
 Inductive cond :=
@@ -167,31 +174,50 @@ Qed.
  *)
 
 Module state_formulas.
+
+Variables Ledger LedgerMainState LedgerLocalState LedgerVMState LedgerMessagesAndEvents GlobalParams OutgoingMessageParams: Type.
+Context `{ledgerClass: LedgerClass XBool Ledger LedgerMainState LedgerLocalState LedgerVMState LedgerMessagesAndEvents GlobalParams OutgoingMessageParams}.
+About URValueL.
+Notation URValue := (@URValueL Ledger LedgerMainState LedgerLocalState LedgerVMState LedgerMessagesAndEvents GlobalParams OutgoingMessageParams ledgerClass) .
+
 Import ListNotations.
-Inductive cond :=
-| phi
-| psi
-| ksi.
 
-Definition state := list cond.
+Inductive Llist (X : Type) : Type :=
+| lnil : Llist X
+| lcons : X -> Llist X -> Llist X.
 
-Definition A := [phi ; psi].
-Definition B := [psi ; phi].
-Definition C := [phi ; phi].
-Definition D := [psi ; ksi].
+Definition state := Llist (URValue XBool false).
 
-Inductive state_formula := 
-| el (c : cond)
+Definition a := URValue XBool false.
+Definition b := URValue XBool false.
+Definition c := URValue XBool false.
+
+Check a : Type.
+About Llist.
+Arguments lnil {X}.
+Arguments lcons {X} a l.
+Definition A := lcons a (lcons a lnil).
+Definition B := lcons a (lcons b lnil).
+Definition C := lcons b (lcons a lnil).
+Definition D := lcons a (lcons c lnil).
+
+Definition SFinterpretor := LedgerT (ControlResultP XUInteger XBool false) -> XBool.
+
+
+(* Inductive state_formula := 
+| el (c : URValue XBool false)
 | and  (b1 b2 : state_formula)
 | or   (b1 b2 : state_formula)
-| impl (b1 b2 : state_formula).
+| impl (b1 b2 : state_formula). *)
 (* Переписать это как функцию из леджера в бул
+    Почему это функция из леджера в бул? 
+    state_formula (sRReader (for)) 
     Подумать о том, что сценарий это не последовательность состояний, а 
     начальное состояние и последовательность переходов
 *)
 
 Inductive formula :=
-| sf   (s : state_formula)
+| sf   (s : URValue XBool false)
 | G    (b : formula)
 | F    (b : formula).
 
@@ -221,18 +247,18 @@ Fixpoint inb'  (b : bool) (a : cond) (l : list cond) : bool :=
 
 Definition inb := inb' false.
 
-Compute inb phi A.
-Definition SFInterpretator (sf : state_formula) (s : state) : bool.
+(* Compute inb phi A. *)
+(* Definition SFInterpretator (sf : URValue XBool false) (s : state) : bool.
 induction sf.
 refine (inb c s).
 refine (andb IHsf1 IHsf2).
 refine (orb IHsf1 IHsf2).
 refine (implb IHsf1 IHsf2).
-Defined.
+Defined. *)
 
-
+(* 
 Compute SFInterpretator (el phi) A .
-
+ *)
 (* Fixpoint interpretator (f : formula) (ls : list state) : bool.
 induction ls.
 refine true.
@@ -243,7 +269,14 @@ refine (orb (interpretator f [a]) IHls).
 Defined.
  *)
 
-Fixpoint interpretator (f : formula) (ls : list state) : bool :=
+Fixpoint interpretator (f : formula) (ls : Llist state) : bool.
+induction ls.
+refine true.
+destruct f.
+remember ( (sRReader s)). 
+apply SFinterpretor in l.
+
+:=
 match ls with
 | [] => true
 | a :: [] => match f with
@@ -290,3 +323,44 @@ Proof.
 Qed.
 
 End state_formulas.
+ *)
+
+Variables (superledger : Type) (a : superledger).
+Variables (ltlformula : Type) (b : ltlformula).
+
+Inductive tree (X : Type) : Type :=
+| empty : tree X
+| trunk : X -> ltlformula -> tree X -> tree X -> tree X
+| branch : X -> tree X -> tree X.
+
+Arguments empty {X}.
+Arguments trunk {X} ltl b t.
+Arguments branch {X} b.
+
+
+Check trunk a b (branch a empty) (trunk a b empty empty).
+
+Definition check_tree ( s : tree superledger) : bool := 
+    match s with
+    | trunk _ _ (trunk _ _ _ _) _ => false
+    | trunk _ _ _ (branch _ _)  => false
+    | branch _ (trunk _ _ _ _) => false
+    | _ => true
+    end.
+
+Example check1 : check_tree (trunk a b (branch a empty) (trunk a b empty empty)) = true.
+Proof.
+    auto.
+Qed.
+
+Example check2 : check_tree (trunk a b (branch a empty) (branch a empty )) = false.
+Proof.
+    auto.
+Qed.
+
+(* Правила обхода дерева. 
+
+    0. Превым всегда обрабатывается первое сообщение ствола. 
+    1. Дальше обрабатывается или следующее сообщение ствола или подряд все сообщения с ветки.
+    2. Повторяем пункт 1 до посещения всех вершин дерева. 
+*)
