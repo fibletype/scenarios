@@ -325,9 +325,16 @@ Qed.
 End state_formulas.
  *)
 Require Import List.
+Require Import Nat.
 Local Open Scope list_scope.
+Local Open Scope nat_scope.
 (* Variables (superledger : Type) (a b c: superledger). *)
 
+Definition hd {X} (l : list X) := 
+    match l with
+    | nil => None
+    | cons h t => Some h
+    end.
 
 (* Представляем наше дерево в виде списка деревьев, тогда у нас верхняя вершина будет считаться стволом, а остальные ветками отходящие от 
    этой вершины ствола.
@@ -343,6 +350,11 @@ Arguments node {X} b t.
 
 Definition superledger := nat.
 
+Fixpoint In (a : superledger) (l : list superledger) :=
+    match l with
+    | nil => false
+    | cons h t => if eqb a h then true else In a t
+    end.
 
 Definition TrunkTree := list (Tree superledger).
 
@@ -357,26 +369,32 @@ Inductive Order :=
 | Second.
 
 Definition PartOrd := list (list superledger).
-
-Fixpoint FindList (s : superledger) (l : list (list superledger)) : optional (list superledger) :=
+Check (eqb 1 2).
+Fixpoint FindList (s : superledger) (l : list (list superledger)) : option (list superledger) :=
     match l with
     | nil => None
-    | cons h t => if (hd h) =? s then h else FindList s t
+    | cons h t => match hd h with
+                    | None => FindList s t
+                    | Some head => if eqb head s then Some h else FindList s t
+    end
     end.
 
-Fixpoint CompPartOrd (a b :superledger) (p : PartOrd) := 
-    match FindList a p in
-    | None => match FindList b p in
+Definition CompPartOrd (a b :superledger) (p : PartOrd) := 
+    match FindList a p with
+    | None => match FindList b p with                
                 | None => Nan
                 | Some k => if (In a k) then Second else Nan
                 end
-    | Some k => if In b k then First else match FindList b p in
+    | Some k => if In b k then First else match FindList b p with
                                             | None => Nan
                                             | Some k => if (In a k) then Second else Nan
                                             end
     end.
 
-Fixpoint MinTime (l : list superledger) : optional superledger :=
+(* Берем элемент, сравниваем его со всеми элементами листа, если он является минимумом, то его и возвращаем
+    иначе проверяем для следующего элемента *)
+
+Fixpoint MinTime (l : list superledger) : option superledger :=
     | nil => None
     | cons h t => ???
 
