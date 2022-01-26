@@ -324,45 +324,79 @@ Qed.
 
 End state_formulas.
  *)
+Require Import List.
+Local Open Scope list_scope.
+(* Variables (superledger : Type) (a b c: superledger). *)
 
-Variables (superledger : Type) (a : superledger).
-Variables (ltlformula : Type) (b : ltlformula).
 
-Inductive tree (X : Type) : Type :=
-| empty : tree X
-| trunk : X -> ltlformula -> tree X -> tree X -> tree X
-| branch : X -> tree X -> tree X.
+(* Представляем наше дерево в виде списка деревьев, тогда у нас верхняя вершина будет считаться стволом, а остальные ветками отходящие от 
+   этой вершины ствола.
+   На некоторые вершины веток у нас задается частичный порядок (пишется руками) 
+   При обходе дерева мы должны учитывать этот частичный порядок *)
+
+Inductive Tree (X : Type) : Type :=
+| empty : Tree X
+| node : X -> Tree X -> Tree X -> Tree X.
 
 Arguments empty {X}.
-Arguments trunk {X} ltl b t.
-Arguments branch {X} b.
+Arguments node {X} b t.
+
+Definition superledger := nat.
 
 
-Check trunk a b (branch a empty) (trunk a b empty empty).
+Definition TrunkTree := list (Tree superledger).
 
-Definition check_tree ( s : tree superledger) : bool := 
-    match s with
-    | trunk _ _ (trunk _ _ _ _) _ => false
-    | trunk _ _ _ (branch _ _)  => false
-    | branch _ (trunk _ _ _ _) => false
-    | _ => true
+(* Inductive PartOrd : superledger -> superledger -> Prop:=
+| A : PartOrd a b
+| B : PartOrd b c.
+ *)
+
+Inductive Order :=
+| Nan
+| First
+| Second.
+
+Definition PartOrd := list (list superledger).
+
+Fixpoint FindList (s : superledger) (l : list (list superledger)) : optional (list superledger) :=
+    match l with
+    | nil => None
+    | cons h t => if (hd h) =? s then h else FindList s t
     end.
 
-Example check1 : check_tree (trunk a b (branch a empty) (trunk a b empty empty)) = true.
-Proof.
-    auto.
-Qed.
+Fixpoint CompPartOrd (a b :superledger) (p : PartOrd) := 
+    match FindList a p in
+    | None => match FindList b p in
+                | None => Nan
+                | Some k => if (In a k) then Second else Nan
+                end
+    | Some k => if In b k then First else match FindList b p in
+                                            | None => Nan
+                                            | Some k => if (In a k) then Second else Nan
+                                            end
+    end.
 
-Example check2 : check_tree (trunk a b (branch a empty) (branch a empty )) = false.
-Proof.
-    auto.
-Qed.
+Fixpoint MinTime (l : list superledger) : optional superledger :=
+    | nil => None
+    | cons h t => ???
 
-(* Правила обхода дерева. 
-    0. Превым всегда обрабатывается первое сообщение ствола. 
-    1. Дальше обрабатывается или следующее сообщение ствола или подряд все сообщения с ветки.
-    2. Повторяем пункт 1 до посещения всех вершин дерева.
-Для этого я могу написать фукцию, которая генерирует лист листов, чтобы получался классический сценарий.
-Все переходы между вершинами происходят соответственно евалам и экзекам, получается, что мы хотим иметь дерево сообщений и написать его 
-обработчик, который позволяет смотреть за состоянием суперледжера
-*)
+(* Я могу каждый раз передовать список доступных вершин в аккумуляторе *)
+
+
+Fixpoint VisitingTree (t : Tree superledger) (acc : list superledger): list superledger :=
+    match t with
+    | empty => nil
+    | node x l r =>  x :: (VisitingTree l) ++ (VisitingTree r)
+    end.
+
+Definition scen := node a (node b (node c empty empty) (node a empty empty)) (node b (node c empty empty) empty).
+
+Compute VisitingTree scen.
+
+
+Fixpoint VisitingTrunkTree (t : TrunkTree) : list superledger := 
+    match t with
+    | nil => nil
+    | cons h t => VisitingTree h ++ VisitingTrunkTree t
+    end.
+
