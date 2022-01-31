@@ -95,10 +95,10 @@ Fixpoint IsMin (l : list superledger) (s : superledger) (p : PartOrd) : bool :=
 
 (* Функция находит минимальный элемент в списке *)
 
-Fixpoint MinTime (l : list superledger) (p : PartOrd) : option superledger :=
+Fixpoint MinTime (l : list superledger) (l1 : list superledger) (p : PartOrd) : option superledger :=
     match l with
     | nil => None
-    | cons h t => if IsMin l h p then Some h else MinTime t p
+    | cons h t => if IsMin l1 h p then Some h else MinTime t l1 p
     end.
 
 
@@ -142,16 +142,17 @@ Fixpoint delete ( l : list superledger) (s : superledger) :=
 Fixpoint ListToScen (p : PartOrd) (s : list superledger) (n : nat): list superledger :=
     match n with
     | 0 => []
-    | S n => match MinTime s p with
+    | S n => match MinTime s s p with
             | None => []
             | Some k => k :: ListToScen p (delete s k) n
     end
     end.
 
-(* Как доказать, что такое порядок корректен и что означает, что он корректен *)
 
+(* Testing *)
 Definition scenario : PartOrd := [ [2; 4; 5; 6] ;
-                                   [4; 2; 5; 6]
+                                   [4; 5; 6] ;
+                                   [6; 5]
                                    ].
 
 Definition sctree := [node 1 (node 5 empty empty) (node 6 empty empty);
@@ -161,5 +162,54 @@ Compute TrunkTreeToList sctree.
 
 Compute ListToScen scenario (TrunkTreeToList sctree) 6.
 
+(* ******* *)
+
+Definition scenario1 : PartOrd := [ [3 ; 6]
+                                   ].
+
+Definition sctree1 := [node 1 (node 5 empty empty) (node 6 empty empty);
+                     (node 2 (node 3 empty empty) (node 4 empty empty)) ].
+
+Compute TrunkTreeToList sctree1.
+
+Compute ListToScen scenario1 (TrunkTreeToList sctree1) 6.
+
+(* ****** *)
+
+Definition scenario2 : PartOrd := [ [7 ; 2 ; 3; 4] ;
+                                    [6 ; 5] ;
+                                    [5 ; 7]
+                                   ].
+
+Definition sctree2 := [node 1 (node 5 (node 7 empty empty) empty) (node 6 empty empty);
+                     (node 2 (node 3 empty empty) (node 4 empty empty)) ].
+
+Compute TrunkTreeToList sctree2.
+
+Compute ListToScen scenario2 (TrunkTreeToList sctree2) 7.
+
+(* ****** *)
+
+Definition scenario3 : PartOrd := [ [7 ; 2 ; 3; 4] ;
+                                    [6 ; 5]
+                                   ].
+
+Definition sctree3 := [node 1 (node 5 (node 7 empty empty) empty) (node 6 empty empty);
+                     (node 2 (node 3 empty empty) (node 4 empty empty)) ].
+
+Compute TrunkTreeToList sctree3.
+
+Compute ListToScen scenario3 (TrunkTreeToList sctree3) 7.
+(* Это пример показывает, что частичный порядок нужно дополнять 
+    естественным порядком топологии графа *)
+(* В связи с этим хочется дополнить частичный порядок естественным порядком графа *)
+(* ****** *)
+
+(* Как доказать, что такое порядок корректен и что означает, что он корректен ?*)
+(* Для такого сгенерированного списка нужно сказать, что он соответствует корректному частичному порядку *)
 (* Доказать лемму, что если в частичном порядке нет проблем, то ветки не выполняются раньше соответствующих нод ствола
     и ствол выполняется "последовательно" *)
+
+
+(* Кажется, что корректность порядка -- отсутствие противоречий типа 1 < 2 && 2 < 1 
+    А также, что в нашем порядке вершина, которая явно идет раньше по графу не идет раньше по порядку *)
