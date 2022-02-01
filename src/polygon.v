@@ -170,6 +170,18 @@ Fixpoint TreeToOrd (t : Tree superledger) (p : PartOrd) : PartOrd :=
                     end 
     end.
 
+Definition HeadToOrd (t : Tree superledger) (p : PartOrd) : PartOrd :=
+    match t with
+    | empty => p
+    | node x l r => match FindList x p with
+                    | None => ([x] ++ TreeToList l ++ TreeToList r) :: p
+                    | Some s => match hd s with
+                                | None => (x :: TreeToList l ++ TreeToList r) :: p           
+                                | Some h => update p (s ++ TreeToList l ++ TreeToList r) h              
+                                end
+                    end 
+    end.
+
 Fixpoint TrunkTreeToOrd (t : TrunkTree) (p : PartOrd) : PartOrd :=
     match t with
     | [] => p
@@ -194,7 +206,7 @@ Fixpoint TreeFromTrunk (t : TrunkTree) : Tree superledger :=
 Fixpoint TrunkOrd (t : TrunkTree) (p : PartOrd) :=
     match t with
     | [] => p
-    | h :: e => let p1 := TreeToOrd (TreeFromTrunk (h::e)) p in
+    | h :: e => let p1 := HeadToOrd (TreeFromTrunk (h::e)) p in
                     TrunkOrd e p1
     end.
 
@@ -202,12 +214,14 @@ Definition FinalizeOrdering (t : TrunkTree) (p : PartOrd) := TrunkTreeToOrd t (T
 
 
 (* Testing *)
-Definition scenario : PartOrd := [ 
-                                   ].
+Definition scenario : PartOrd := [  [2; 4; 5; 6] ;
+                                    [4; 5; 6] ;
+                                    [6; 5]
+                                 ].
 
 Definition sctree := [node 1 (node 5 empty empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
-                    Compute (TrunkOrd sctree scenario).
+
 Compute FinalizeOrdering sctree scenario.
 
 Compute TrunkTreeToList sctree.
@@ -231,37 +245,20 @@ Compute ListToScen (FinalizeOrdering sctree1 scenario1) (TrunkTreeToList sctree1
 (* ****** *)
 
 Definition scenario2 : PartOrd := [ [7 ; 2 ; 3; 4] ;
-                                    [6 ; 5] ;
-                                    [5 ; 7]
+                                    [6 ; 5] 
                                    ].
 
 Definition sctree2 := [node 1 (node 5 (node 7 empty empty) empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
 
+Compute FinalizeOrdering sctree2 scenario2.
+
 Compute TrunkTreeToList sctree2.
 
-Compute ListToScen scenario2 (TrunkTreeToList sctree2) 7.
+Compute ListToScen (FinalizeOrdering sctree2 scenario2) (TrunkTreeToList sctree2) 7.
 
 (* ****** *)
-
-Definition scenario3 : PartOrd := [ [7 ; 2 ; 3; 4] ;
-                                    [6 ; 5]
-                                   ].
-
-Definition sctree3 := [node 1 (node 5 (node 7 empty empty) empty) (node 6 empty empty);
-                     (node 2 (node 3 empty empty) (node 4 empty empty)) ].
-Compute TrunkTreeToOrd sctree3 scenario3.
-Compute TrunkTreeToList sctree3.
-Compute ListToScen (TrunkTreeToOrd sctree3 scenario3) (TrunkTreeToList sctree3) 7.
-
-(* Compute ListToScen scenario3 (TrunkTreeToList sctree3) 7. 
-    Это пример показывает, что частичный порядок нужно дополнять 
-    естественным порядком топологии графа *)
-
-(* В связи с этим хочется дополнить частичный порядок естественным порядком графа DONE*)
-
-(* ****** *)
-
+(* Возможно мы хотим для большей читаймости убрать из частичного порядка бесполезные элементы *)
 (* Как доказать, что такое порядок корректен и что означает, что он корректен ?*)
 
 (* Для такого сгенерированного списка нужно сказать, что он соответствует корректному частичному порядку *)
