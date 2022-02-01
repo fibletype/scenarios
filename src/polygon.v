@@ -176,6 +176,30 @@ Fixpoint TrunkTreeToOrd (t : TrunkTree) (p : PartOrd) : PartOrd :=
                     TrunkTreeToOrd e p1
     end.
 
+Fixpoint LeftApp (t1 t2 : Tree superledger) :=
+    match t1 with
+    | empty => t2
+    | node h l r => node h (LeftApp l t2) r
+    end.
+
+Compute LeftApp (node 1 (node 5 empty empty) (node 6 empty empty)) (node 2 (node 3 empty empty) (node 4 empty empty)).
+
+Fixpoint TreeFromTrunk (t : TrunkTree) : Tree superledger :=
+    match t with
+    | [] => empty
+    | h :: e => LeftApp h (TreeFromTrunk e)
+    end.
+
+Fixpoint TrunkOrd (t : TrunkTree) (p : PartOrd) :=
+    match t with
+    | [] => p
+    | h :: e => let p1 := TreeToOrd (TreeFromTrunk (h::e)) p in
+                    TrunkOrd e p1
+    end.
+
+Definition FinalizeOrdering (t : TrunkTree) (p : PartOrd) := (TrunkOrd t p).
+
+
 (* Testing *)
 Definition scenario : PartOrd := [ [2; 4; 5; 6] ;
                                    [4; 5; 6] ;
@@ -186,8 +210,9 @@ Compute TreeToOrd ((node 2 (node 3 empty empty) (node 4 empty empty))) scenario.
 
 Definition sctree := [node 1 (node 5 empty empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
-
-Compute TrunkTreeToOrd sctree scenario.
+Compute TreeFromTrunk sctree 0.
+Compute TreeToOrd (TreeFromTrunk sctree) scenario.
+Compute TrunkTreeToOrd sctree (TreeToOrd (TreeFromTrunk sctree) scenario).
 
 Compute TrunkTreeToList sctree.
 
