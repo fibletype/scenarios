@@ -107,19 +107,7 @@ Fixpoint TreeToList (t : Tree superledger) : list superledger :=
     | empty => nil
     | node x l r => x :: TreeToList l ++ TreeToList r
     end.
-      
-    (* 
-    Изначально я хотел обходить просто все дерево, но мне показалось это слишком сложно. Возможно лучше сначала генерировать просто обход,
-    а потом из него уже делать православный обход
-    if IsMin acc x P then  
-                        match hdT l with
-                        | None => x :: (VisitingTree r accTree acc)
-                        | Some lh => x :: (VisitingTree r (cons l accTree) (cons lh acc) )
-                        end
-                    else
-                        x :: (VisitingTree r (accTree) (acc) )
-    end.
- *)
+
 Definition scen := node 1 (node 2 (node 3 empty empty) (node 4 empty empty)) (node 5 (node 6 empty empty) empty).
 
 Compute TreeToList scen.
@@ -149,14 +137,57 @@ Fixpoint ListToScen (p : PartOrd) (s : list superledger) (n : nat): list superle
     end.
 
 
+(* Функция меняет лист с заданной головой на другой. Если такой головы нет у листов, то ничего не делает*)
+Fixpoint update (p : PartOrd) (l : list superledger) (s : superledger) : PartOrd :=
+    match p with
+    | [] => []
+    | h :: t => match hd h with
+                | None => update t l s
+                | Some k => if eqb k s then 
+                                        l :: update t l s
+                                    else
+                                        h :: update t l s
+                end
+    end. 
+
+(* Функция апдейта частичного порядка для дерева *)
+Fixpoint TreeToOrd (t : Tree superledger) (p : PartOrd) : PartOrd :=
+    match t with
+    | empty => p
+    | node x l r => match FindList x p with
+                    | None => let p1 := ([x] ++ TreeToList l ++ TreeToList r) :: p in
+                                let p2 := TreeToOrd l p1 in
+                                    TreeToOrd r p2
+                    | Some s => match hd s with
+                                | None => let p1 := (x :: TreeToList l ++ TreeToList r) :: p in
+                                            let p2 := TreeToOrd l p1 in
+                                                TreeToOrd r p2
+                                | Some h => let p1 := update p (s ++ TreeToList l ++ TreeToList r) h in
+                                                let p2 := TreeToOrd l p1 in
+                                                    TreeToOrd r p2
+                                end
+                    end 
+    end.
+
+Fixpoint TrunkTreeToOrd (t : TrunkTree) (p : PartOrd) : PartOrd :=
+    match t with
+    | [] => p
+    | h :: e => let p1 := TreeToOrd h p in
+                    TrunkTreeToOrd e p1
+    end.
+
 (* Testing *)
 Definition scenario : PartOrd := [ [2; 4; 5; 6] ;
                                    [4; 5; 6] ;
                                    [6; 5]
                                    ].
 
+Compute TreeToOrd ((node 2 (node 3 empty empty) (node 4 empty empty))) scenario.
+
 Definition sctree := [node 1 (node 5 empty empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
+
+Compute TrunkTreeToOrd sctree scenario.
 
 Compute TrunkTreeToList sctree.
 
@@ -196,11 +227,11 @@ Definition scenario3 : PartOrd := [ [7 ; 2 ; 3; 4] ;
 
 Definition sctree3 := [node 1 (node 5 (node 7 empty empty) empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
-
+Compute TrunkTreeToOrd sctree3 scenario3.
 Compute TrunkTreeToList sctree3.
-
-Compute ListToScen scenario3 (TrunkTreeToList sctree3) 7.
-(* Это пример показывает, что частичный порядок нужно дополнять 
+Compute ListToScen (TrunkTreeToOrd sctree3 scenario3) (TrunkTreeToList sctree3) 7.
+(* Compute ListToScen scenario3 (TrunkTreeToList sctree3) 7. 
+    Это пример показывает, что частичный порядок нужно дополнять 
     естественным порядком топологии графа *)
 (* В связи с этим хочется дополнить частичный порядок естественным порядком графа *)
 (* ****** *)
