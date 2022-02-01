@@ -151,6 +151,7 @@ Fixpoint update (p : PartOrd) (l : list superledger) (s : superledger) : PartOrd
     end. 
 
 (* Функция апдейта частичного порядка для дерева *)
+(* TODO сделать такую же функцию но только для  *)
 Fixpoint TreeToOrd (t : Tree superledger) (p : PartOrd) : PartOrd :=
     match t with
     | empty => p
@@ -197,26 +198,21 @@ Fixpoint TrunkOrd (t : TrunkTree) (p : PartOrd) :=
                     TrunkOrd e p1
     end.
 
-Definition FinalizeOrdering (t : TrunkTree) (p : PartOrd) := (TrunkOrd t p).
+Definition FinalizeOrdering (t : TrunkTree) (p : PartOrd) := TrunkTreeToOrd t (TrunkOrd t p).
 
 
 (* Testing *)
-Definition scenario : PartOrd := [ [2; 4; 5; 6] ;
-                                   [4; 5; 6] ;
-                                   [6; 5]
+Definition scenario : PartOrd := [ 
                                    ].
-
-Compute TreeToOrd ((node 2 (node 3 empty empty) (node 4 empty empty))) scenario.
 
 Definition sctree := [node 1 (node 5 empty empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
-Compute TreeFromTrunk sctree 0.
-Compute TreeToOrd (TreeFromTrunk sctree) scenario.
-Compute TrunkTreeToOrd sctree (TreeToOrd (TreeFromTrunk sctree) scenario).
+                    Compute (TrunkOrd sctree scenario).
+Compute FinalizeOrdering sctree scenario.
 
 Compute TrunkTreeToList sctree.
 
-Compute ListToScen scenario (TrunkTreeToList sctree) 6.
+Compute ListToScen (FinalizeOrdering sctree scenario) (TrunkTreeToList sctree) 6.
 
 (* ******* *)
 
@@ -226,9 +222,11 @@ Definition scenario1 : PartOrd := [ [3 ; 6]
 Definition sctree1 := [node 1 (node 5 empty empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
 
+Compute FinalizeOrdering sctree1 scenario1.
+
 Compute TrunkTreeToList sctree1.
 
-Compute ListToScen scenario1 (TrunkTreeToList sctree1) 6.
+Compute ListToScen (FinalizeOrdering sctree1 scenario1) (TrunkTreeToList sctree1) 6.
 
 (* ****** *)
 
