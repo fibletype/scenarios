@@ -151,7 +151,7 @@ Fixpoint update (p : PartOrd) (l : list superledger) (s : superledger) : PartOrd
     end. 
 
 (* Функция апдейта частичного порядка для дерева *)
-(* TODO сделать такую же функцию но только для  *)
+
 Fixpoint TreeToOrd (t : Tree superledger) (p : PartOrd) : PartOrd :=
     match t with
     | empty => p
@@ -169,7 +169,7 @@ Fixpoint TreeToOrd (t : Tree superledger) (p : PartOrd) : PartOrd :=
                                 end
                     end 
     end.
-
+(* Функция делает порядок для головы *)
 Definition HeadToOrd (t : Tree superledger) (p : PartOrd) : PartOrd :=
     match t with
     | empty => p
@@ -181,14 +181,14 @@ Definition HeadToOrd (t : Tree superledger) (p : PartOrd) : PartOrd :=
                                 end
                     end 
     end.
-
+(* Добавление порядка по дереву без учета ствола *)
 Fixpoint TrunkTreeToOrd (t : TrunkTree) (p : PartOrd) : PartOrd :=
     match t with
     | [] => p
     | h :: e => let p1 := TreeToOrd h p in
                     TrunkTreeToOrd e p1
     end.
-
+(* Сложение деревьев *)
 Fixpoint LeftApp (t1 t2 : Tree superledger) :=
     match t1 with
     | empty => t2
@@ -196,13 +196,13 @@ Fixpoint LeftApp (t1 t2 : Tree superledger) :=
     end.
 
 Compute LeftApp (node 1 (node 5 empty empty) (node 6 empty empty)) (node 2 (node 3 empty empty) (node 4 empty empty)).
-
+(* Сборка дерева из стволового дерева *)
 Fixpoint TreeFromTrunk (t : TrunkTree) : Tree superledger :=
     match t with
     | [] => empty
     | h :: e => LeftApp h (TreeFromTrunk e)
     end.
-
+(* Естественный порядок дерева *)
 Fixpoint TrunkOrd (t : TrunkTree) (p : PartOrd) :=
     match t with
     | [] => p
