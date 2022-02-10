@@ -56,7 +56,7 @@ Definition PartOrd := list (list superledger).
 
 Check (eqb 1 2).
 
-(* Функция поиска элемента в листе *)
+(* Функция поиска элемента в частичном порядке *)
 
 Fixpoint FindList (s : superledger) (l : list (list superledger)) : option (list superledger) :=
     match l with
@@ -212,6 +212,42 @@ Fixpoint TrunkOrd (t : TrunkTree) (p : PartOrd) :=
 
 Definition FinalizeOrdering (t : TrunkTree) (p : PartOrd) := TrunkTreeToOrd t (TrunkOrd t p).
 
+Unset Guard Checking.
+
+Fixpoint Reachable (n : superledger) (l : list superledger) (p : PartOrd) (vis : list superledger) {struct n} := 
+    match l with
+    | [] => []
+    | h :: t => if In h vis then Reachable n t p vis
+    else
+        if eqb h n then Reachable n t p vis
+                    else 
+                        match FindList h p with
+                        | None => h :: (Reachable n t p (h :: vis))
+                        | Some s =>  let r := Reachable n t p (h :: vis) in 
+                                            h :: r ++ (Reachable h s p (h :: vis ++ r)) 
+                        end 
+    end. 
+
+Set Guard Checking.
+
+Fixpoint Chains (n : nat) (p : PartOrd) : list (list superledger):=
+    match n with
+    | 0 => []
+    | S n => match FindList (S n) p with
+            | None => Chains n p
+            | Some s => ((S n) :: Reachable (S n) s p []) :: Chains n p
+    end
+    end.
+
+Fixpoint IsOrdCorrect (l : list (list superledger)) (a : nat) : nat :=
+    match l with
+    | [] => a
+    | h :: t => match h with
+                | [] => IsOrdCorrect t a
+                | head :: tail => if In head tail then head
+                                else IsOrdCorrect t a
+    end
+    end. 
 
 (* Testing *)
 Definition scenario : PartOrd := [  [2; 4; 5; 6] ;
@@ -219,13 +255,19 @@ Definition scenario : PartOrd := [  [2; 4; 5; 6] ;
                                     [6; 5]
                                  ].
 
+Compute Chains 6 scenario.
+Compute IsOrdCorrect (Chains 6 scenario) 0.
 Definition sctree := [node 1 (node 5 empty empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
-
+(* Строим частичный порядок *)
 Compute FinalizeOrdering sctree scenario.
-
+(* Строим какой-то обход *)
 Compute TrunkTreeToList sctree.
-
+(* Строим для каждой вершины список вершин идущих после нее согласно частичному порядку *)
+Compute Chains 6 (FinalizeOrdering sctree scenario).
+(* Проверяем корректность порядка *)
+Compute IsOrdCorrect (Chains 6 (FinalizeOrdering sctree scenario)) 0.
+(* Делам финальный обоход *)
 Compute ListToScen (FinalizeOrdering sctree scenario) (TrunkTreeToList sctree) 6.
 
 (* ******* *)
@@ -257,7 +299,9 @@ Compute TrunkTreeToList sctree2.
 
 Compute ListToScen (FinalizeOrdering sctree2 scenario2) (TrunkTreeToList sctree2) 7.
 
-(* ****** *)
+(* End Testing *)
+
+(* Comments *)
 (* Возможно мы хотим для большей читаймости убрать из частичного порядка бесполезные элементы *)
 (* Как доказать, что такое порядок корректен и что означает, что он корректен ?*)
 
