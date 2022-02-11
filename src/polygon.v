@@ -137,7 +137,7 @@ Fixpoint ListToScen (p : PartOrd) (s : list superledger) (n : nat): list superle
     end.
 
 
-(* Функция меняет лист с заданной головой на другой. Если такой головы нет у листов, то ничего не делает*)
+(* Функция меняет лист с заданной головой в частичном порядке на другой. Если такой головы нет у листов, то ничего не делает*)
 Fixpoint update (p : PartOrd) (l : list superledger) (s : superledger) : PartOrd :=
     match p with
     | [] => []
@@ -188,29 +188,33 @@ Fixpoint TrunkTreeToOrd (t : TrunkTree) (p : PartOrd) : PartOrd :=
     | h :: e => let p1 := TreeToOrd h p in
                     TrunkTreeToOrd e p1
     end.
-(* Сложение деревьев *)
-Fixpoint LeftApp (t1 t2 : Tree superledger) :=
-    match t1 with
-    | empty => t2
-    | node h l r => node h (LeftApp l t2) r
-    end.
 
-Compute LeftApp (node 1 (node 5 empty empty) (node 6 empty empty)) (node 2 (node 3 empty empty) (node 4 empty empty)).
-(* Сборка дерева из стволового дерева *)
-Fixpoint TreeFromTrunk (t : TrunkTree) : Tree superledger :=
-    match t with
-    | [] => empty
-    | h :: e => LeftApp h (TreeFromTrunk e)
-    end.
-(* Естественный порядок дерева *)
-Fixpoint TrunkOrd (t : TrunkTree) (p : PartOrd) :=
+(* Добавление естественного порядка для вершины по стволу  *)
+Fixpoint NodeOrd (n : superledger) (t : TrunkTree) (p : PartOrd) : PartOrd :=
     match t with
     | [] => p
-    | h :: e => let p1 := HeadToOrd (TreeFromTrunk (h::e)) p in
-                    TrunkOrd e p1
+    | h :: e => let p1 := HeadToOrd (node n h empty) p in
+                    NodeOrd n e p1
     end.
 
-Definition FinalizeOrdering (t : TrunkTree) (p : PartOrd) := TrunkTreeToOrd t (TrunkOrd t p).
+(* Фкункция по дереву и стволу делает порядок *)
+Fixpoint TreeOrd (tree : Tree superledger) (t : TrunkTree) (p : PartOrd) : PartOrd :=
+    match tree with
+    | empty => p
+    | node x l r => let p1 := NodeOrd x t p in
+                        let p2 := TreeOrd l t p1 in
+                            TreeOrd r t p2
+    end.
+(* Функция добавление частичного порядка по стволу для дерева *)
+
+Fixpoint TrunkTreeOrd (t : TrunkTree) (p : PartOrd) : PartOrd :=
+    match t with
+    | [] => p
+    | h :: e => let p1 := TreeOrd h e p in
+                    TrunkTreeOrd e p1
+    end.
+
+Definition FinalizeOrdering (t : TrunkTree) (p : PartOrd) := TrunkTreeToOrd t (TrunkTreeOrd t p).
 
 Unset Guard Checking.
 
@@ -229,7 +233,7 @@ Fixpoint Reachable (n : superledger) (l : list superledger) (p : PartOrd) (vis :
     end. 
 
 Set Guard Checking.
-
+(* Построение транзитивного замыкания для вершины *)
 Fixpoint Chains (n : nat) (p : PartOrd) : list (list superledger):=
     match n with
     | 0 => []
@@ -238,7 +242,7 @@ Fixpoint Chains (n : nat) (p : PartOrd) : list (list superledger):=
             | Some s => ((S n) :: Reachable (S n) s p []) :: Chains n p
     end
     end.
-
+(* Проверка транзитивного замыкания на отсутствие циклов  *)
 Fixpoint IsOrdCorrect (l : list (list superledger)) (a : nat) : nat :=
     match l with
     | [] => a
@@ -250,13 +254,11 @@ Fixpoint IsOrdCorrect (l : list (list superledger)) (a : nat) : nat :=
     end. 
 
 (* Testing *)
-Definition scenario : PartOrd := [  [2; 4; 5; 6] ;
-                                    [4; 5; 6] ;
+Definition scenario : PartOrd := [  [4; 3] ;
                                     [6; 5]
                                  ].
 
-Compute Chains 6 scenario.
-Compute IsOrdCorrect (Chains 6 scenario) 0.
+
 Definition sctree := [node 1 (node 5 empty empty) (node 6 empty empty);
                      (node 2 (node 3 empty empty) (node 4 empty empty)) ].
 (* Строим частичный порядок *)
@@ -313,3 +315,29 @@ Compute ListToScen (FinalizeOrdering sctree2 scenario2) (TrunkTreeToList sctree2
 
 (* Кажется, что корректность порядка -- отсутствие противоречий типа 1 < 2 && 2 < 1 
     А также, что в нашем порядке вершина, которая явно идет раньше по графу не идет раньше по порядку *)
+
+
+
+
+
+(* (* Сложение деревьев *)
+Fixpoint LeftApp (t1 t2 : Tree superledger) :=
+    match t1 with
+    | empty => t2
+    | node h l r => node h (LeftApp l t2) r
+    end.
+
+Compute LeftApp (node 1 (node 5 empty empty) (node 6 empty empty)) (node 2 (node 3 empty empty) (node 4 empty empty)).
+(* Сборка дерева из стволового дерева *)
+Fixpoint TreeFromTrunk (t : TrunkTree) : Tree superledger :=
+    match t with
+    | [] => empty
+    | h :: e => LeftApp h (TreeFromTrunk e)
+    end. *)
+(* (* Естественный порядок ствола *)
+Fixpoint TrunkOrd (t : TrunkTree) (p : PartOrd) :=
+    match t with
+    | [] => p
+    | h :: e => let p1 := HeadToOrd (TreeFromTrunk (h::e)) p in
+                    TrunkOrd e p1
+    end. *)
