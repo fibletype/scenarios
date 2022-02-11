@@ -269,37 +269,47 @@ Compute TrunkTreeToList sctree.
 Compute Chains 6 (FinalizeOrdering sctree scenario).
 (* Проверяем корректность порядка *)
 Compute IsOrdCorrect (Chains 6 (FinalizeOrdering sctree scenario)) 0.
-(* Делам финальный обоход *)
+(* Делам финальный обход *)
 Compute ListToScen (FinalizeOrdering sctree scenario) (TrunkTreeToList sctree) 6.
 
 (* ******* *)
 
-Definition scenario1 : PartOrd := [ [3 ; 6]
+Definition scenario1 : PartOrd := [ 
                                    ].
 
-Definition sctree1 := [node 1 (node 5 empty empty) (node 6 empty empty);
-                     (node 2 (node 3 empty empty) (node 4 empty empty)) ].
+Definition sctree1 := [node 1 (node 3 (node 4 (node 9 empty empty) empty) (node 8 empty empty)) (node 5 (node 6 empty empty) (node 7 empty empty));
+                     (node 2 (node 10 empty empty) (node 11 empty empty)) ].
 
+(* Строим частичный порядок *)
 Compute FinalizeOrdering sctree1 scenario1.
-
+(* Строим какой-то обход *)
 Compute TrunkTreeToList sctree1.
-
-Compute ListToScen (FinalizeOrdering sctree1 scenario1) (TrunkTreeToList sctree1) 6.
+(* Строим для каждой вершины список вершин идущих после нее согласно частичному порядку *)
+Compute Chains 11 (FinalizeOrdering sctree1 scenario1).
+(* Проверяем корректность порядка *)
+Compute IsOrdCorrect (Chains 11 (FinalizeOrdering sctree1 scenario1)) 0.
+(* Делам финальный обход *)
+Compute ListToScen (FinalizeOrdering sctree1 scenario1) (TrunkTreeToList sctree1) 11.
 
 (* ****** *)
 
-Definition scenario2 : PartOrd := [ [7 ; 2 ; 3; 4] ;
-                                    [6 ; 5] 
+Definition scenario2 : PartOrd := [ [4; 7] ;
+                                    [7; 3]
                                    ].
 
-Definition sctree2 := [node 1 (node 5 (node 7 empty empty) empty) (node 6 empty empty);
-                     (node 2 (node 3 empty empty) (node 4 empty empty)) ].
+Definition sctree2 := [node 1 (node 3 (node 4 (node 9 empty empty) empty) (node 8 empty empty)) (node 5 (node 6 empty empty) (node 7 empty empty));
+                     (node 2 (node 10 empty empty) (node 11 empty empty)) ].
 
+(* Строим частичный порядок *)
 Compute FinalizeOrdering sctree2 scenario2.
-
+(* Строим какой-то обход *)
 Compute TrunkTreeToList sctree2.
-
-Compute ListToScen (FinalizeOrdering sctree2 scenario2) (TrunkTreeToList sctree2) 7.
+(* Строим для каждой вершины список вершин идущих после нее согласно частичному порядку *)
+Compute Chains 11 (FinalizeOrdering sctree2 scenario2).
+(* Проверяем корректность порядка *)
+Compute IsOrdCorrect (Chains 11 (FinalizeOrdering sctree2 scenario2)) 0. (* 7 is imposter (7 < 3 < 4 < 7) *) 
+(* Делам финальный обход *)
+Compute ListToScen (FinalizeOrdering sctree2 scenario2) (TrunkTreeToList sctree2) 11.
 
 (* End Testing *)
 
