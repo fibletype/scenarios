@@ -253,6 +253,64 @@ Fixpoint IsOrdCorrect (l : list (list superledger)) (a : nat) : nat :=
     end
     end. 
 
+Fixpoint IsOrdCorrectb (l : list (list superledger)) : bool :=
+    match l with
+    | [] => true
+    | h :: t => match h with
+                | [] => IsOrdCorrectb t 
+                | head :: tail => if In head tail then false
+                                else IsOrdCorrectb t 
+    end
+    end. 
+
+Lemma correct_correct : forall l, IsOrdCorrectb l = true -> IsOrdCorrect l 0 = 0.
+Proof.
+    induction l.
+    simpl. auto.
+    intros.
+    simpl. destruct a.
+    simpl in H.
+    apply IHl in H. auto.
+    simpl in H.
+    destruct (In s a) eqn:In.
+    inversion H.
+    apply IHl in H. auto.
+Qed.
+
+Fixpoint NotInHead (l : list (list superledger)) (n : nat) :=
+    match l with
+    | [] => true
+    | h :: t => match h with
+                | [] => NotInHead t n
+                | head :: tail => if head =? n then false
+                                    else NotInHead t n
+    end
+    end.
+
+Lemma correct_correct2 : forall l, IsOrdCorrectb l = false -> NotInHead l 0 = true -> IsOrdCorrect l 0 <> 0 .
+Proof.
+    induction l.
+    simpl.
+    intros. inversion H.
+    simpl.
+    intros.
+    destruct a.
+    apply IHl in H.
+    auto. auto.
+    destruct (In s a) eqn:In.
+    all : cycle 1.
+    apply IHl.
+    auto. destruct s.
+    simpl in *.
+    inversion H0.
+    simpl in H0. auto.
+    destruct s.
+    simpl in *.
+    inversion H0.
+    auto.
+Qed.
+
+
 (* Testing *)
 Definition scenario : PartOrd := [  [4; 3] ;
                                     [6; 5]
