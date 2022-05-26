@@ -1,6 +1,6 @@
 (coq.theory
- (name Scenarios)
- (package scenarios) 
+ (name SLedger)
+ (package pruvendo-superledger) 
 )
 
 (include_subdirs qualified)

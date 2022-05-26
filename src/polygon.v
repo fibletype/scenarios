@@ -287,7 +287,8 @@ Fixpoint NotInHead (l : list (list superledger)) (n : nat) :=
     end
     end.
 
-Lemma correct_correct2 : forall l, IsOrdCorrectb l = false -> NotInHead l 0 = true -> IsOrdCorrect l 0 <> 0 .
+Lemma correct_correct2 : forall l, 
+    IsOrdCorrectb l = false -> NotInHead l 0 = true -> IsOrdCorrect l 0 <> 0 .
 Proof.
     induction l.
     simpl.

@@ -1,0 +1,34 @@
+synopsis:     "Ursus superLedger"
+description:  "Ursus superLedger"
+name:         "pruvendo-superLedger"
+opam-version: "2.0"
+maintainer:   "team@pruvendo.com"
+authors:      "Pruvendo Team"
+homepage:     "git://git@vcs.modus-ponens.com/ton/pruvendo-superLedger.git"
+dev-repo:     "git+https://github.com/Pruvendo/opam-repo.git"
+bug-reports:  "git://git@vcs.modus-ponens.com:ton/pruvendo-superLedger.git"
+doc:          "https://vcs.modus-ponens.com/ton/pruvendo-superLedger.git"
+
+license:      "GPL-3.0-or-later"
+
+depends: [
+  "coq"           { >= "8.11.0" }
+  "dune"          { >= "2.8.0"  }
+  "pruvendo-base" { >= "0.2.0" }
+  "pruvendo-base-lib" { >= "0.1.0" }
+  "pruvendo-umlang" 
+  "ursus-standard-library"
+  "pruvendo-ursus-tvm"
+  "pruvendo-kw-project"
+]
+
+pin-depends: [
+  [ "pruvendo-base.latest-git" "../coq-finproof-base#master" ]
+  [ "pruvendo-base-lib.latest-git" "../pruvendo-base-lib#master" ]
+  [ "pruvendo-umlang.latest-git" "../solidity-monadic-language#moduless" ]
+  [ "ursus-standard-library.latest-git" "../ursus-standard-library#moduless" ]
+  [ "pruvendo-ursus-tvm.latest-git" "../pruvendo-ursus-tvm#now32" ]
+  [ "pruvendo-kw-project.latest-git" "../pruvendo-kw-project#superledger" ]
+]
+
+build: [ "dune" "build" "-p" name "-j" jobs ]
